@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Remote Mouse and Keyboard Control</title>
+    <link rel="stylesheet" href="style.css"> <!-- Optional: If using external CSS -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        .control-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-around;
+        }
+        .touchpad {
+            width: 300px;
+            height: 300px;
+            background-color: #ccc;
+            border: 2px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: none;
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .scroll-area {
+            margin-top: 20px;
+            width: 100px;
+            height: 200px;
+            background-color: #eee;
+            border: 2px solid #000;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .keyboard-input {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        input[type="text"] {
+            padding: 10px;
+            font-size: 16px;
+            width: 250px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background-color: #007BFF;
+            color: white;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Remote Control</h1>
+    <div class="control-container">
+        <!-- Touchpad area for mouse control -->
+        <div class="touchpad" id="touchpad">
+            <p>Touchpad: Move & Click</p>
+        </div>
+
+        <!-- Scroll area for vertical scrolling -->
+        <div class="scroll-area" id="scroll-area">
+            <p>Scroll Here</p>
+        </div>
+
+        <!-- Keyboard input section -->
+        <div class="keyboard-input">
+            <input type="text" id="keyboardInput" placeholder="Type here...">
+            <button onclick="sendKeyboardInput()">Send Text</button><br>
+            <button onclick="sendBackspace()">Backspace</button>
+        </div>
+    </div>
+
+    <script>
+        // Handling mouse movement
+        const touchpad = document.getElementById('touchpad');
+        touchpad.addEventListener('mousemove', function(event) {
+            if (event.buttons === 1) {  // Left mouse button pressed
+                const x = event.movementX;
+                const y = event.movementY;
+                fetch(`/move?x=${x}&y=${y}`);
+            }
+        });
+
+        touchpad.addEventListener('click', function() {
+            fetch('/click');
+        });
+
+        // Handling touch movement
+        let lastTouch = { x: null, y: null };
+        touchpad.addEventListener('touchstart', function(event) {
+            const touch = event.touches[0];
+            lastTouch.x = touch.clientX;
+            lastTouch.y = touch.clientY;
+        }, { passive: false });
+
+        touchpad.addEventListener('touchmove', function(event) {
+            event.preventDefault(); // Prevent scrolling
+            const touch = event.touches[0];
+            const deltaX = touch.clientX - (lastTouch.x || touch.clientX);
+            const deltaY = touch.clientY - (lastTouch.y || touch.clientY);
+            lastTouch.x = touch.clientX;
+            lastTouch.y = touch.clientY;
+
+            // Adjust sensitivity as needed
+            const sensitivity = 1; // You can change this value
+            fetch(`/move?x=${deltaX * sensitivity}&y=${deltaY * sensitivity}`);
+        }, { passive: false });
+
+        touchpad.addEventListener('touchend', function(event) {
+            // Implement tap detection for click
+            if (event.touches.length === 0) {
+                const clickEvent = new MouseEvent('click', {
+                    view: window,
+                    bubbles: true,
+                    cancelable: true
+                });
+                touchpad.dispatchEvent(clickEvent);
+            }
+        });
+
+        // Handling scrolling
+        const scrollArea = document.getElementById('scroll-area');
+        scrollArea.addEventListener('wheel', function(event) {
+            event.preventDefault(); // Prevent default scrolling behavior
+            const scrollAmount = event.deltaY; // Get the scroll amount
+            fetch(`/scroll?amount=${scrollAmount}`);
+        });
+
+        // Handling keyboard input
+        function sendKeyboardInput() {
+            const inputText = document.getElementById('keyboardInput').value;
+            if (inputText) {
+                fetch(`/type?text=${encodeURIComponent(inputText)}`);
+                document.getElementById('keyboardInput').value = '';
+            }
+        }
+
+        // Handling backspace action
+        function sendBackspace() {
+            fetch(`/type?text=backspace`);
+        }
+    </script>
+</body>
+</html>

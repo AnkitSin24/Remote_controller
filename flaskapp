@@ -1,0 +1,125 @@
+from flask import Flask, request, render_template
+from flask_cors import CORS  # Allows cross-origin requests
+import autopy  # Library for controlling mouse and keyboard
+
+app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes to avoid any cross-origin issues
+
+# Serve the homepage where users can control the mouse and keyboard
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+# Move the mouse by a certain distance (relative movement)
+@app.route('/move')
+def move():
+    try:
+        # Get the 'x' and 'y' values from the query parameters
+        x = request.args.get('x', default=0.0, type=float)
+        y = request.args.get('y', default=0.0, type=float)
+
+        # Print the received values for debugging
+        print(f"Move command: x={x}, y={y}")
+
+        # Get the current mouse position
+        current_x, current_y = autopy.mouse.location()
+
+        # Calculate the new position by adding the offset
+        new_x = current_x + x
+        new_y = current_y + y
+
+        # Move the mouse to the new position
+        autopy.mouse.move(new_x, new_y)
+
+        return f"Moved mouse by {x} pixels horizontally and {y} pixels vertically", 200
+    except Exception as e:
+        print(f"Error while moving mouse: {str(e)}")
+        return f"Error while moving mouse: {str(e)}", 500
+
+# Move the mouse to a specific position on the screen (absolute movement)
+@app.route('/move_to')
+def move_to():
+    try:
+        # Get the target 'x' and 'y' positions from the query parameters
+        x = request.args.get('x', default=0, type=int)
+        y = request.args.get('y', default=0, type=int)
+
+        # Print the target coordinates for debugging
+        print(f"Move to position command: x={x}, y={y}")
+
+        # Get the screen size to check if the target position is within bounds
+        screen_width, screen_height = autopy.screen.size()
+
+        if 0 <= x <= screen_width and 0 <= y <= screen_height:
+            # Move the mouse to the specified position
+            autopy.mouse.move(x, y)
+            return f"Mouse moved to position ({x}, {y})", 200
+        else:
+            return f"Error: Position ({x}, {y}) is outside the screen limits.", 400
+    except Exception as e:
+        print(f"Error while moving to position: {str(e)}")
+        return f"Error while moving to position: {str(e)}", 500
+
+# Perform a left mouse click
+@app.route('/click', methods=['GET'])
+def click():
+    try:
+        autopy.mouse.click()  # Perform a left-click
+        return "Mouse left-clicked", 200
+    except Exception as e:
+        print(f"Error during left-click: {str(e)}")
+        return f"Error during left-click: {str(e)}", 500
+
+# Perform a right mouse click
+@app.route('/right_click', methods=['GET'])
+def right_click():
+    try:
+        autopy.mouse.click(autopy.mouse.Button.RIGHT)  # Perform a right-click
+        return "Mouse right-clicked", 200
+    except Exception as e:
+        print(f"Error during right-click: {str(e)}")
+        return f"Error during right-click: {str(e)}", 500
+
+# Scroll the mouse vertically
+@app.route('/scroll', methods=['GET'])
+def scroll():
+    try:
+        # Get the scroll amount (positive for up, negative for down)
+        amount = request.args.get('amount', default=0, type=int)
+
+        # Print the scroll amount for debugging
+        print(f"Scroll command: amount={amount}")
+
+        # Smoothly scroll the mouse by the specified amount
+        autopy.mouse.smooth_scroll(amount)
+
+        return f"Scrolled by {amount} units", 200
+    except Exception as e:
+        print(f"Error while scrolling: {str(e)}")
+        return f"Error while scrolling: {str(e)}", 500
+
+# Type the specified text using the keyboard
+@app.route('/type', methods=['GET'])
+def type_text():
+    try:
+        # Get the text to type from the query parameters
+        text = request.args.get('text', default='', type=str)
+
+        if text.lower() == 'backspace':
+            # Simulate a backspace keypress
+            autopy.key.tap(autopy.key.BACKSPACE)
+            print("Backspace key pressed")
+            return "Backspace pressed", 200
+        else:
+            # Type the provided text
+            autopy.key.type_string(text)
+            print(f"Typed: {text}")
+            return f"Typed: {text}", 200
+    except Exception as e:
+        print(f"Error while typing text: {str(e)}")
+        return f"Error while typing text: {str(e)}", 500
+
+# Run the Flask application
+if __name__ == '__main__':
+    # Start the app, making it accessible to other devices on the network
+    app.run(host='0.0.0.0', port=5000, debug=True)

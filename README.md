@@ -1,4 +1,4 @@
-✨ Key Features
+
 🖱️ Mouse Control: Seamlessly move your mouse pointer across the screen, either relatively or by jumping to a specific position.
 👆 Mouse Click: Perform both left and right mouse clicks with just a tap.
 🖱️ Scrolling: Scroll through long web pages or documents with smooth vertical scrolling.
